@@ -3,27 +3,75 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace TorpedoFrontEnd
 {
+    public enum ShipOrientation
+    {
+        Horizontal,
+        Vertical
+    }
+
     public class GameViewModel : INotifyPropertyChanged
     {
+        // Grids for each player
         public ObservableCollection<Cell> Player1Cells { get; set; }
         public ObservableCollection<Cell> Player2Cells { get; set; }
+
+        // Ships for each player
+        public ObservableCollection<Ship> Player1Ships { get; set; }
+        public ObservableCollection<Ship> Player2Ships { get; set; }
+
+        // Commands
+        public ICommand PlaceShipCommand { get; }
         public ICommand FireCommand { get; }
 
+        // Selected ship and orientation
+        private Ship selectedShip;
+        public Ship SelectedShip
+        {
+            get => selectedShip;
+            set
+            {
+                selectedShip = value;
+                OnPropertyChanged(nameof(SelectedShip));
+            }
+        }
+
+        private ShipOrientation shipOrientation = ShipOrientation.Horizontal;
+        public ShipOrientation ShipOrientation
+        {
+            get => shipOrientation;
+            set
+            {
+                shipOrientation = value;
+                OnPropertyChanged(nameof(ShipOrientation));
+            }
+        }
+
+        // Game state tracking
         private bool isPlayer1Turn = true;
+        public bool IsPlacementPhase { get; private set; } = true;
+        public string CurrentPlayer => isPlayer1Turn ? "Player 1's Turn" : "Player 2's Turn";
 
         public GameViewModel()
         {
+            // Initialize grids
             Player1Cells = new ObservableCollection<Cell>();
             Player2Cells = new ObservableCollection<Cell>();
             InitializeCells(Player1Cells);
             InitializeCells(Player2Cells);
-            FireCommand = new RelayCommand<Cell>(Fire);
+
+            // Initialize ships
+            InitializePlayerShips();
+
+            // Commands
+            PlaceShipCommand = new RelayCommand<Cell>(PlaceShip, CanPlaceShip);
+            FireCommand = new RelayCommand<Cell>(Fire, CanFire);
+
+            // Select the first ship to place
+            SelectedShip = Player1Ships.FirstOrDefault();
         }
 
         private void InitializeCells(ObservableCollection<Cell> cells)
@@ -34,39 +82,147 @@ namespace TorpedoFrontEnd
             }
         }
 
-        private void Fire(Cell cell)
+        private void InitializePlayerShips()
         {
-            if (cell != null && !cell.IsHit)
+            var ships = new List<Ship>
             {
-                // Check if the cell is in the opponent's grid
-                if ((isPlayer1Turn && Player2Cells.Contains(cell)) ||
-                    (!isPlayer1Turn && Player1Cells.Contains(cell)))
-                {
-                    cell.IsHit = true;
-                    cell.Display = "X"; // Mark the cell as hit
-                                        // Implement hit or miss logic here
+                new Ship { Name = "Aircraft Carrier", Size = 5 },
+                new Ship { Name = "Battleship", Size = 4 },
+                new Ship { Name = "Submarine", Size = 3 },
+                new Ship { Name = "Cruiser", Size = 3 },
+                new Ship { Name = "Destroyer", Size = 2 }
+            };
 
-                    SwitchTurns();
+            Player1Ships = new ObservableCollection<Ship>(ships);
+            Player2Ships = new ObservableCollection<Ship>(ships.Select(s => new Ship { Name = s.Name, Size = s.Size }));
+        }
+
+        private bool CanPlaceShip(Cell cell)
+        {
+            return IsPlacementPhase && SelectedShip != null && !SelectedShip.IsPlaced;
+        }
+
+        private void PlaceShip(Cell startCell)
+        {
+            if (startCell == null || SelectedShip == null)
+                return;
+
+            var playerCells = isPlayer1Turn ? Player1Cells : Player2Cells;
+
+            int startIndex = playerCells.IndexOf(startCell);
+            int row = startIndex / 10;
+            int column = startIndex % 10;
+            var shipCells = new List<Cell>();
+
+            for (int i = 0; i < SelectedShip.Size; i++)
+            {
+                int index;
+                if (ShipOrientation == ShipOrientation.Horizontal)
+                {
+                    if (column + i >= 10)
+                        return; // Ship doesn't fit horizontally
+                    index = startIndex + i;
                 }
                 else
                 {
-                    // Optionally notify the player that they can't fire on their own grid
+                    if (row + i >= 10)
+                        return; // Ship doesn't fit vertically
+                    index = startIndex + i * 10;
+                }
+
+                var cell = playerCells[index];
+                if (cell.Ship != null)
+                    return; // Cell is already occupied
+                shipCells.Add(cell);
+            }
+
+            // Place the ship
+            foreach (var cell in shipCells)
+            {
+                cell.Ship = SelectedShip;
+                cell.Display = "⛵";
+                SelectedShip.Cells.Add(cell);
+            }
+
+            SelectedShip.IsPlaced = true;
+
+            // Check if all ships are placed
+            if ((isPlayer1Turn ? Player1Ships : Player2Ships).All(s => s.IsPlaced))
+            {
+                if (isPlayer1Turn)
+                {
+                    // Switch to Player 2 placement
+                    isPlayer1Turn = false;
+                    SelectedShip = Player2Ships.FirstOrDefault(s => !s.IsPlaced);
+                }
+                else
+                {
+                    // Placement phase complete
+                    IsPlacementPhase = false;
+                    isPlayer1Turn = true; // Player 1 starts
                 }
             }
+            else
+            {
+                SelectedShip = (isPlayer1Turn ? Player1Ships : Player2Ships).FirstOrDefault(s => !s.IsPlaced);
+            }
+
+            OnPropertyChanged(nameof(CurrentPlayer));
+        }
+
+        private bool CanFire(Cell cell)
+        {
+            return !IsPlacementPhase && cell != null && !cell.IsHit &&
+                   ((isPlayer1Turn && Player2Cells.Contains(cell)) ||
+                    (!isPlayer1Turn && Player1Cells.Contains(cell)));
+        }
+
+        private void Fire(Cell cell)
+        {
+            if (cell == null || cell.IsHit)
+                return;
+
+            cell.IsHit = true;
+
+            if (cell.Ship != null)
+            {
+                cell.Display = "💥"; // Hit
+                if (cell.Ship.Cells.All(c => c.IsHit))
+                {
+                    // Ship is sunk
+                    // Optionally notify the player
+                }
+
+                if (IsGameOver())
+                {
+                    // Game over logic
+                    string winner = isPlayer1Turn ? "Player 1" : "Player 2";
+                    // Display winner or end game
+                }
+            }
+            else
+            {
+                cell.Display = "🌊"; // Miss
+            }
+
+            SwitchTurns();
+            OnPropertyChanged(nameof(CurrentPlayer));
         }
 
         private void SwitchTurns()
         {
             isPlayer1Turn = !isPlayer1Turn;
-            OnPropertyChanged(nameof(CurrentPlayer));
         }
 
-        public string CurrentPlayer => isPlayer1Turn ? "Player 1's Turn" : "Player 2's Turn";
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged(string propertyName)
+        private bool IsGameOver()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            var opponentCells = isPlayer1Turn ? Player2Cells : Player1Cells;
+            return opponentCells.Where(c => c.Ship != null).All(c => c.IsHit);
         }
+
+        // INotifyPropertyChanged implementation
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged(string propertyName) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

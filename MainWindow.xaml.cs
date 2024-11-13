@@ -16,6 +16,7 @@ namespace TorpedoFrontEnd
             InitializeComponent();
             DataContext = new GameViewModel();
         }
+
     }
 }
 

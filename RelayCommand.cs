@@ -1,37 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace TorpedoFrontEnd
 {
     public class RelayCommand<T> : ICommand
     {
-        private readonly Action<T> _execute;
-        private readonly Predicate<T> _canExecute;
+        private readonly Action<T> execute;
+        private readonly Predicate<T> canExecute;
 
-        public RelayCommand(Action<T> execute, Predicate<T> canExecute = null)
+        public RelayCommand(Action<T> executeAction, Predicate<T> canExecutePredicate = null)
         {
-            _execute = execute;
-            _canExecute = canExecute;
+            execute = executeAction;
+            canExecute = canExecutePredicate;
         }
 
-        public bool CanExecute(object parameter)
-        {
-            return _canExecute == null || _canExecute((T)parameter);
-        }
+        public bool CanExecute(object parameter) =>
+            canExecute == null || canExecute((T)parameter);
 
-        public void Execute(object parameter)
-        {
-            _execute((T)parameter);
-        }
+        public void Execute(object parameter) =>
+            execute((T)parameter);
 
         public event EventHandler CanExecuteChanged
         {
-            add { CommandManager.RequerySuggested += value; }
-            remove { CommandManager.RequerySuggested -= value; }
+            add => CommandManager.RequerySuggested += value;
+            remove => CommandManager.RequerySuggested -= value;
         }
     }
 }

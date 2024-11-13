@@ -1,32 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
 namespace TorpedoFrontEnd
 {
     public class Cell : INotifyPropertyChanged
     {
-        private string _display = "";
+        private string display = "";
         public string Display
         {
-            get { return _display; }
+            get => display;
             set
             {
-                _display = value;
+                display = value;
                 OnPropertyChanged(nameof(Display));
             }
         }
 
         public bool IsHit { get; set; } = false;
-        // Add properties to represent ships, if necessary
+        public Ship Ship { get; set; } = null;
 
+        // INotifyPropertyChanged implementation
         public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged(string propertyName)
-        {
+        protected void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
     }
 }
