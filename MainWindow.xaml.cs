@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows;
+using System.Windows.Input;
 
 namespace TorpedoFrontEnd
 {
@@ -16,7 +17,16 @@ namespace TorpedoFrontEnd
             InitializeComponent();
             DataContext = new GameViewModel();
         }
-
+        private void Cell_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is GameViewModel viewModel)
+            {
+                // Toggle between horizontal and vertical orientation
+                viewModel.ShipOrientation = viewModel.ShipOrientation == ShipOrientation.Horizontal
+                    ? ShipOrientation.Vertical
+                    : ShipOrientation.Horizontal;
+            }
+        }
     }
 }
 

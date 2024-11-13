@@ -99,8 +99,38 @@ namespace TorpedoFrontEnd
 
         private bool CanPlaceShip(Cell cell)
         {
-            return IsPlacementPhase && SelectedShip != null && !SelectedShip.IsPlaced;
+            if (!IsPlacementPhase || SelectedShip == null || SelectedShip.IsPlaced || cell == null)
+                return false;
+
+            var playerCells = isPlayer1Turn ? Player1Cells : Player2Cells;
+            int startIndex = playerCells.IndexOf(cell);
+            int row = startIndex / 10;
+            int column = startIndex % 10;
+
+            // Check if the ship fits within the grid and doesn't overlap
+            for (int i = 0; i < SelectedShip.Size; i++)
+            {
+                int index;
+                if (ShipOrientation == ShipOrientation.Horizontal)
+                {
+                    if (column + i >= 10)
+                        return false; // Out of bounds
+                    index = startIndex + i;
+                }
+                else // Vertical
+                {
+                    if (row + i >= 10)
+                        return false; // Out of bounds
+                    index = startIndex + i * 10;
+                }
+
+                if (playerCells[index].Ship != null)
+                    return false; // Cell already occupied
+            }
+
+            return true;
         }
+
 
         private void PlaceShip(Cell startCell)
         {
@@ -123,7 +153,7 @@ namespace TorpedoFrontEnd
                         return; // Ship doesn't fit horizontally
                     index = startIndex + i;
                 }
-                else
+                else // Vertical
                 {
                     if (row + i >= 10)
                         return; // Ship doesn't fit vertically
@@ -146,24 +176,25 @@ namespace TorpedoFrontEnd
 
             SelectedShip.IsPlaced = true;
 
-            // Check if all ships are placed
+            // Proceed to the next ship or switch player
             if ((isPlayer1Turn ? Player1Ships : Player2Ships).All(s => s.IsPlaced))
             {
-                if (isPlayer1Turn)
+                if (!isPlayer1Turn)
                 {
-                    // Switch to Player 2 placement
-                    isPlayer1Turn = false;
-                    SelectedShip = Player2Ships.FirstOrDefault(s => !s.IsPlaced);
+                    // Both players have placed their ships
+                    IsPlacementPhase = false;
+                    isPlayer1Turn = true;
                 }
                 else
                 {
-                    // Placement phase complete
-                    IsPlacementPhase = false;
-                    isPlayer1Turn = true; // Player 1 starts
+                    // Switch to player 2 for ship placement
+                    isPlayer1Turn = false;
+                    SelectedShip = Player2Ships.FirstOrDefault(s => !s.IsPlaced);
                 }
             }
             else
             {
+                // Select the next ship to place
                 SelectedShip = (isPlayer1Turn ? Player1Ships : Player2Ships).FirstOrDefault(s => !s.IsPlaced);
             }
 
@@ -224,5 +255,6 @@ namespace TorpedoFrontEnd
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
     }
 }
