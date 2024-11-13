@@ -2,15 +2,34 @@
 using System.Globalization;
 using System.Windows.Data;
 
-public class EnumToBooleanConverter : IValueConverter
+namespace TorpedoFrontEnd
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public class EnumToBooleanConverter : IValueConverter
     {
-        return value.Equals(parameter);
-    }
+        // Converts Enum to Boolean
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (parameter == null)
+                return false;
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        return value.Equals(true) ? parameter : Binding.DoNothing;
+            string parameterString = parameter.ToString();
+            if (parameterString == null)
+                return false;
+
+            return value.ToString().Equals(parameterString, StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        // Converts Boolean back to Enum
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (parameter == null)
+                return null;
+
+            string parameterString = parameter.ToString();
+            if (parameterString == null)
+                return null;
+
+            return Enum.Parse(targetType, parameterString);
+        }
     }
 }
