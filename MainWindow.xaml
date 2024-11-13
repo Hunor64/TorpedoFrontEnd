@@ -8,8 +8,9 @@
         Title="Torpedo Game" Width="800" Height="400">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition/>
-            <ColumnDefinition/>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="5" />
+            <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- Player 1 Grid -->
@@ -31,9 +32,11 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </StackPanel>
+        
+        <Border Grid.Column="1" Background="Black" />
 
         <!-- Player 2 Grid -->
-        <StackPanel Grid.Column="1">
+        <StackPanel Grid.Column="2">
             <TextBlock Text="Player 2" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,10,0,10"/>
             <ItemsControl ItemsSource="{Binding Player2Cells}">
                 <ItemsControl.ItemsPanel>
