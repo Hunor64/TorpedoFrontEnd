@@ -19,6 +19,7 @@ namespace TorpedoFrontEnd
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = new GameViewModel();
         }
     }
 }

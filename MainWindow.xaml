@@ -5,8 +5,52 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TorpedoFrontEnd"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Torpedo Game" Width="800" Height="400">
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
 
+        <!-- Player 1 Grid -->
+        <StackPanel Grid.Column="0">
+            <TextBlock Text="Player 1" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,10,0,10"/>
+            <ItemsControl ItemsSource="{Binding Player1Cells}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="10" Columns="10"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Content="{Binding Display}"
+                                Command="{Binding DataContext.FireCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                Width="30" Height="30" Margin="1"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <!-- Player 2 Grid -->
+        <StackPanel Grid.Column="1">
+            <TextBlock Text="Player 2" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,10,0,10"/>
+            <ItemsControl ItemsSource="{Binding Player2Cells}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="10" Columns="10"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Content="{Binding Display}"
+                                Command="{Binding DataContext.FireCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                Width="30" Height="30" Margin="1"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
     </Grid>
+
 </Window>
