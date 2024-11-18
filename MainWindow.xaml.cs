@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Input;
 
+
 namespace TorpedoFrontEnd
 {
     /// <summary>
@@ -12,80 +13,85 @@ namespace TorpedoFrontEnd
     /// </summary>
     public partial class MainWindow : Window
     {
+        private const string ServerIp = "127.0.0.1"; // Change this if your server is on a different machine
+
+        private const int ServerPort = 65432;
+
+        private TcpClient client;
         public MainWindow()
-        {
-            InitializeComponent();
-            DataContext = new GameViewModel();
-        }
-        private void Cell_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (DataContext is GameViewModel viewModel)
             {
-                // Toggle between horizontal and vertical orientation
-                viewModel.ShipOrientation = viewModel.ShipOrientation == ShipOrientation.Horizontal
-                    ? ShipOrientation.Vertical
-                    : ShipOrientation.Horizontal;
+                InitializeComponent();
+            ConnectToServer();
+            DataContext = new GameViewModel();
+            }
+            private void Cell_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+            {
+                if (DataContext is GameViewModel viewModel)
+                {
+                    // Toggle between horizontal and vertical orientation
+                    viewModel.ShipOrientation = viewModel.ShipOrientation == ShipOrientation.Horizontal
+                        ? ShipOrientation.Vertical
+                        : ShipOrientation.Horizontal;
+                }
+            }
+
+            private async void ConnectToServer()
+            {
+                client = new TcpClient();
+                try
+                {
+                    await client.ConnectAsync(ServerIp, ServerPort);
+                    ResponseTextBox.AppendText("Connected to server.\n");
+                    ReceiveMessages();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error connecting to server: {ex.Message}");
+                }
+            }
+
+            private async void ReceiveMessages()
+            {
+                NetworkStream stream = client.GetStream();
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+
+                while (true)
+                {
+                    try
+                    {
+                        bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                        if (bytesRead == 0) break; // Connection closed
+
+                        string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                        Dispatcher.Invoke(() => ResponseTextBox.AppendText($"Server: {message}\n"));
+                    }
+                    catch (Exception ex)
+                    {
+                        Dispatcher.Invoke(() => MessageBox.Show($"Error receiving message: {ex.Message}"));
+                        break;
+                    }
+                }
+            }
+
+            private async void SendButton_Click(object sender, RoutedEventArgs e)
+            {
+                if (client == null || !client.Connected) return;
+
+                string message = MessageTextBox.Text;
+                if (string.IsNullOrWhiteSpace(message)) return;
+
+                try
+                {
+                    NetworkStream stream = client.GetStream();
+                    byte[] data = Encoding.UTF8.GetBytes(message);
+                    await stream.WriteAsync(data, 0, data.Length);
+                    MessageTextBox.Clear();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error sending message: {ex.Message}");
+                }
             }
         }
     }
-}
-
-
-//namespace TorpedoGameClient
-//{
-//    class Program
-//    {
-//        static void Main(string[] args)
-//        {
-//            ConnectToServer();
-//        }
-
-//        public static void ConnectToServer()
-//        {
-//            try
-//            {
-//                // Define server endpoint
-//                IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
-//                IPAddress ipAddr = ipHost.AddressList[0]; // Assuming localhost for testing
-//                IPEndPoint remoteEP = new IPEndPoint(ipAddr, 11111);
-
-//                // Create a TCP socket
-//                Socket sender = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-//                // Connect to the server
-//                sender.Connect(remoteEP);
-//                Console.WriteLine("Connected to the server!");
-
-//                // Start communication
-//                while (true)
-//                {
-//                    Console.Write("Enter command (shoot, move, status, exit): ");
-//                    string command = Console.ReadLine();
-
-//                    // Exit the client if the user types "exit"
-//                    if (command.ToLower() == "exit")
-//                    {
-//                        byte[] exitMessage = Encoding.ASCII.GetBytes("exit<EOF>");
-//                        sender.Send(exitMessage);
-//                        break;
-//                    }
-
-//                    // Send command to the server
-//                    byte[] message = Encoding.ASCII.GetBytes(command + "<EOF>");
-//                    sender.Send(message);
-
-//                    // Receive response from the server
-//                    byte[] bytes = new byte[1024];
-//                    int numByte = sender.Receive(bytes);
-//                    string response = Encoding.ASCII.GetString(bytes, 0, numByte);
-//                    Console.WriteLine("Server response: {0}", response);
-//                }
-
-//                // Shutdown and close the socket
-//                sender.Shutdown(SocketShutdown.Both);
-//                sender.Close();
-//            }
-//            catch (Exception e)
-//            {
-//                Console.WriteLine($"Error: {e}");
-//            }

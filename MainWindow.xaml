@@ -49,6 +49,12 @@
         <StackPanel Grid.Column="2">
             <TextBlock Text="Player 2" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,10,0,10"/>
             <!-- Player 2 grid content -->
+           <!--FOR TEST-->
+            <TextBox Name="MessageTextBox" Height="30" Margin="10" VerticalAlignment="Top"/>
+
+            <Button Name="SendButton" Content="Send" Height="30" Margin="10,50,10,0" VerticalAlignment="Top" Click="SendButton_Click"/>
+
+            <TextBox Name="ResponseTextBox" Height="150" Margin="10,100,10,10" VerticalAlignment="Top" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
         </StackPanel>
     </Grid>
 </Window>
