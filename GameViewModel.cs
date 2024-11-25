@@ -63,19 +63,23 @@ namespace TorpedoFrontEnd
         public bool IsPlacementPhase { get; private set; } = true;
         public string CurrentPlayer => isPlayer1Turn ? "Player 1's Turn" : "Player 2's Turn";
 
-        public GameViewModel()
+        private readonly MainWindow mainWindow;
+
+        public GameViewModel(MainWindow window)
         {
+            mainWindow = window;
+
             // Initialize grids
             Player1Cells = new ObservableCollection<Cell>();
             Player2Cells = new ObservableCollection<Cell>();
             InitializeCells(Player1Cells);
             InitializeCells(Player2Cells);
-            RotateShipCommand = new RelayCommand<object>(RotateShip);
 
             // Initialize ships
             InitializePlayerShips();
 
             // Commands
+            RotateShipCommand = new RelayCommand<object>(RotateShip);
             PlaceShipCommand = new RelayCommand<Cell>(PlaceShip, CanPlaceShip);
             FireCommand = new RelayCommand<Cell>(Fire, CanFire);
 
@@ -83,11 +87,15 @@ namespace TorpedoFrontEnd
             SelectedShip = Player1Ships.FirstOrDefault();
         }
 
+
         private void InitializeCells(ObservableCollection<Cell> cells)
         {
-            for (int i = 0; i < 100; i++)
+            for (int y = 0; y < 10; y++)
             {
-                cells.Add(new Cell());
+                for (int x = 0; x < 10; x++)
+                {
+                    cells.Add(new Cell(x, y));
+                }
             }
         }
 
@@ -248,6 +256,11 @@ namespace TorpedoFrontEnd
             }
 
             OnPropertyChanged(nameof(CurrentPlayer));
+            if (!IsPlacementPhase)
+            {
+                // Send a message to the server indicating ships have been placed
+                mainWindow.SendMessageToServer("SHIPS_PLACED");
+            }
         }
 
         private bool CanFire(Cell cell)
@@ -275,15 +288,20 @@ namespace TorpedoFrontEnd
 
                 if (IsGameOver())
                 {
-                    // Game over logic
                     string winner = isPlayer1Turn ? "Player 1" : "Player 2";
-                    // Display winner or end game
+                    // Notify about the game over
+                    mainWindow.SendMessageToServer($"GAME_OVER {winner}");
+                    return;
                 }
             }
             else
             {
                 cell.Display = "🌊"; // Miss
             }
+
+            // Send the firing action to the server
+            string message = $"FIRE {cell.X},{cell.Y}";
+            mainWindow.SendMessageToServer(message);
 
             SwitchTurns();
             OnPropertyChanged(nameof(CurrentPlayer));
@@ -292,6 +310,7 @@ namespace TorpedoFrontEnd
         private void SwitchTurns()
         {
             isPlayer1Turn = !isPlayer1Turn;
+            OnPropertyChanged(nameof(CurrentPlayer));
         }
 
         private bool IsGameOver()

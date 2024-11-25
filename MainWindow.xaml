@@ -49,15 +49,29 @@
         <!-- Separator Line -->
         <Border Grid.Column="1" Background="Black" />
 
-        <!-- Player 2 Grid (Remains unchanged for now) -->
+        <!-- Player 2 Grid (Enemy Field) -->
         <StackPanel Grid.Column="2">
             <TextBlock Text="Player 2" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,10,0,10"/>
-            <!-- Player 2 grid content -->
-           <!--FOR TEST-->
+            <!-- Player 2 Grid -->
+            <ItemsControl ItemsSource="{Binding Player2Cells}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="10" Columns="10"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Content="{Binding Display}"
+                                Command="{Binding DataContext.FireCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                Width="30" Height="30" Margin="1"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Communication Section -->
             <TextBox Name="MessageTextBox" Height="30" Margin="10" VerticalAlignment="Top"/>
-
             <Button Name="SendButton" Content="Send" Height="30" Margin="10,50,10,0" VerticalAlignment="Top" Click="SendButton_Click"/>
-
             <TextBox Name="ResponseTextBox" Height="150" Margin="10,100,10,10" VerticalAlignment="Top" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
         </StackPanel>
     </Grid>
