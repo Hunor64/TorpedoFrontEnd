@@ -104,10 +104,14 @@ namespace TorpedoFrontEnd
 
             var playerCells = isPlayer1Turn ? Player1Cells : Player2Cells;
             int startIndex = playerCells.IndexOf(cell);
+            if (startIndex == -1)
+                return false; // Cell not found in the list
+
             int row = startIndex / 10;
             int column = startIndex % 10;
 
-            // Check if the ship fits within the grid and doesn't overlap
+            var shipIndices = new List<int>();
+
             for (int i = 0; i < SelectedShip.Size; i++)
             {
                 int index;
@@ -126,6 +130,34 @@ namespace TorpedoFrontEnd
 
                 if (playerCells[index].Ship != null)
                     return false; // Cell already occupied
+
+                shipIndices.Add(index);
+            }
+
+            // Check adjacent cells around the ship placement area
+            foreach (var index in shipIndices)
+            {
+                int r = index / 10;
+                int c = index % 10;
+
+                // Offsets to get adjacent cells including diagonals
+                int[] dr = { -1, -1, -1, 0, 0, 1, 1, 1 };
+                int[] dc = { -1, 0, 1, -1, 1, -1, 0, 1 };
+
+                for (int k = 0; k < 8; k++)
+                {
+                    int nr = r + dr[k];
+                    int nc = c + dc[k];
+                    if (nr >= 0 && nr < 10 && nc >= 0 && nc < 10)
+                    {
+                        int neighborIndex = nr * 10 + nc;
+                        // Skip indices that are part of the ship itself
+                        if (shipIndices.Contains(neighborIndex))
+                            continue;
+                        if (playerCells[neighborIndex].Ship != null)
+                            return false; // Adjacent cell is occupied
+                    }
+                }
             }
 
             return true;
