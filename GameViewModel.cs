@@ -20,6 +20,14 @@ namespace TorpedoFrontEnd
         public ObservableCollection<Cell> Player2Cells { get; set; }
 
         // Ships for each player
+        public ICommand RotateShipCommand { get; }
+
+        private void RotateShip(object parameter)
+        {
+            ShipOrientation = ShipOrientation == ShipOrientation.Horizontal
+                ? ShipOrientation.Vertical
+                : ShipOrientation.Horizontal;
+        }
         public ObservableCollection<Ship> Player1Ships { get; set; }
         public ObservableCollection<Ship> Player2Ships { get; set; }
 
@@ -62,6 +70,7 @@ namespace TorpedoFrontEnd
             Player2Cells = new ObservableCollection<Cell>();
             InitializeCells(Player1Cells);
             InitializeCells(Player2Cells);
+            RotateShipCommand = new RelayCommand<object>(RotateShip);
 
             // Initialize ships
             InitializePlayerShips();
@@ -99,7 +108,7 @@ namespace TorpedoFrontEnd
 
         private bool CanPlaceShip(Cell cell)
         {
-            if (!IsPlacementPhase || SelectedShip == null || SelectedShip.IsPlaced || cell == null)
+            if (!IsPlacementPhase || SelectedShip == null || cell == null)
                 return false;
 
             var playerCells = isPlayer1Turn ? Player1Cells : Player2Cells;
@@ -118,13 +127,13 @@ namespace TorpedoFrontEnd
                 if (ShipOrientation == ShipOrientation.Horizontal)
                 {
                     if (column + i >= 10)
-                        return false; // Out of bounds
+                        return false; // Out of bounds horizontally
                     index = startIndex + i;
                 }
                 else // Vertical
                 {
                     if (row + i >= 10)
-                        return false; // Out of bounds
+                        return false; // Out of bounds vertically
                     index = startIndex + i * 10;
                 }
 
@@ -135,10 +144,10 @@ namespace TorpedoFrontEnd
             }
 
             // Check adjacent cells around the ship placement area
-            foreach (var index in shipIndices)
+            foreach (var idx in shipIndices)
             {
-                int r = index / 10;
-                int c = index % 10;
+                int r = idx / 10;
+                int c = idx % 10;
 
                 // Offsets to get adjacent cells including diagonals
                 int[] dr = { -1, -1, -1, 0, 0, 1, 1, 1 };
@@ -170,8 +179,12 @@ namespace TorpedoFrontEnd
                 return;
 
             var playerCells = isPlayer1Turn ? Player1Cells : Player2Cells;
+            var ships = isPlayer1Turn ? Player1Ships : Player2Ships;
 
             int startIndex = playerCells.IndexOf(startCell);
+            if (startIndex == -1)
+                return; // Cell not found in the list
+
             int row = startIndex / 10;
             int column = startIndex % 10;
             var shipCells = new List<Cell>();
@@ -208,26 +221,30 @@ namespace TorpedoFrontEnd
 
             SelectedShip.IsPlaced = true;
 
+            // Remove the placed ship from the player's ships collection
+            ships.Remove(SelectedShip);
+
             // Proceed to the next ship or switch player
-            if ((isPlayer1Turn ? Player1Ships : Player2Ships).All(s => s.IsPlaced))
+            if (ships.Count == 0)
             {
                 if (!isPlayer1Turn)
                 {
                     // Both players have placed their ships
                     IsPlacementPhase = false;
                     isPlayer1Turn = true;
+                    SelectedShip = null;
                 }
                 else
                 {
                     // Switch to player 2 for ship placement
                     isPlayer1Turn = false;
-                    SelectedShip = Player2Ships.FirstOrDefault(s => !s.IsPlaced);
+                    SelectedShip = Player2Ships.FirstOrDefault();
                 }
             }
             else
             {
                 // Select the next ship to place
-                SelectedShip = (isPlayer1Turn ? Player1Ships : Player2Ships).FirstOrDefault(s => !s.IsPlaced);
+                SelectedShip = ships.FirstOrDefault();
             }
 
             OnPropertyChanged(nameof(CurrentPlayer));

@@ -19,11 +19,11 @@ namespace TorpedoFrontEnd
 
         private TcpClient client;
         public MainWindow()
-            {
-                InitializeComponent();
+        {
+            InitializeComponent();
             ConnectToServer();
             DataContext = new GameViewModel();
-            }
+        }
             private void Cell_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
             {
                 if (DataContext is GameViewModel viewModel)
