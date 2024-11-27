@@ -44,7 +44,7 @@ namespace TorpedoFrontEnd
                 if (message == "GetPlayerID" && int.TryParse(response, out int id))
                 {
                     playerID = id;
-                    Dispatcher.Invoke(() => ResponseTextBox.AppendText($"Player ID received: {playerID}\n"));
+                    //Dispatcher.Invoke(() => ResponseTextBox.AppendText($"Player ID received: {playerID}\n"));
                 }
             }
             catch (Exception ex)
@@ -59,7 +59,7 @@ namespace TorpedoFrontEnd
             try
             {
                 await client.ConnectAsync(ServerIp, ServerPort);
-                ResponseTextBox.AppendText("Connected to server.\n");
+                //ResponseTextBox.AppendText("Connected to server.\n");
                 ReceiveMessages();
             }
             catch (Exception ex)
@@ -82,7 +82,17 @@ namespace TorpedoFrontEnd
                     if (bytesRead == 0) break; // Connection closed
 
                     string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    Dispatcher.Invoke(() => ResponseTextBox.AppendText($"Server: {message}\n"));
+                    Dispatcher.Invoke(() =>
+                    {
+                        
+
+                        // Check if the message contains the Player ID
+                        if (message.StartsWith("PlayerID:") && int.TryParse(message.Substring(9), out int id))
+                        {
+                            playerID = id;
+                            MessageBox.Show($"Server: {message}\n Player ID received: {playerID}\n");
+                        }
+                    });
                 }
                 catch (Exception ex)
                 {
