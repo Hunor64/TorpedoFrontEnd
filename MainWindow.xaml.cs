@@ -90,7 +90,22 @@ namespace TorpedoFrontEnd
                         if (message.StartsWith("PlayerID:") && int.TryParse(message.Substring(9), out int id))
                         {
                             playerID = id;
-                            MessageBox.Show($"Server: {message}\n Player ID received: {playerID}\n");
+                            //MessageBox.Show($"Server: {message}\n Player ID received: {playerID}\n");
+                            if (playerID == 1)
+                            {
+                                txbLocalPlayer.Text = "Player 1";
+                                txbRemotePlayer.Text = "Player 2";
+                            }
+                            else if (playerID == 2)
+                            {
+                                txbLocalPlayer.Text = "Player 2";
+                                txbRemotePlayer.Text = "Player 1";
+                            }
+                            else if (playerID == -1)
+                            {
+                                MessageBox.Show("Server is full, please try again later.");
+                                this.Close();
+                            }
                         }
                     });
                 }

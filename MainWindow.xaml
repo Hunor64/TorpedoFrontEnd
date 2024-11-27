@@ -11,7 +11,7 @@
 
         <!-- Player 1 Grid and Ship Selection -->
         <StackPanel Grid.Column="0">
-            <TextBlock Text="Player 1" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,10,0,10"/>
+            <TextBlock x:Name="txbLocalPlayer" Text="Player 1" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,10,0,10"/>
             <StackPanel Orientation="Horizontal">
                 <Button Content="Rotate Ship" Command="{Binding RotateShipCommand}" />
                 <TextBlock Text="{Binding ShipOrientation}" Margin="10,0,0,0"/>
@@ -51,7 +51,7 @@
 
         <!-- Player 2 Grid (Enemy Field) -->
         <StackPanel Grid.Column="2">
-            <TextBlock Text="Player 2" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,10,0,10"/>
+            <TextBlock x:Name="txbRemotePlayer" Text="Player 2" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,10,0,10"/>
             <!-- Player 2 Grid -->
             <ItemsControl ItemsSource="{Binding Player2Cells}">
                 <ItemsControl.ItemsPanel>
