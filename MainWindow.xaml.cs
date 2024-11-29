@@ -17,7 +17,7 @@ namespace TorpedoFrontEnd
         private const int ServerPort = 65432;
         private TcpClient client;
 
-        int playerID = 0;
+        public int playerID = 0;
 
         public MainWindow()
         {
