@@ -17,14 +17,14 @@ namespace TorpedoFrontEnd
         private const int ServerPort = 65432;
         private TcpClient client;
 
-        public int playerID = 0;
+        public int playerID = 1;
 
         public MainWindow()
         {
             InitializeComponent();
             ConnectToServer();
-            DataContext = new GameViewModel(this);
             SendMessageToServer("GetPlayerID");
+            DataContext = new GameViewModel(this);
         }
 
         public async void SendMessageToServer(string message)
@@ -41,10 +41,13 @@ namespace TorpedoFrontEnd
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                 string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
+                // Log the response for debugging
+                MessageBox.Show($"Server response: {response}");
+
                 if (message == "GetPlayerID" && int.TryParse(response, out int id))
                 {
                     playerID = id;
-                    //Dispatcher.Invoke(() => ResponseTextBox.AppendText($"Player ID received: {playerID}\n"));
+                    MessageBox.Show($"You are player {playerID}");
                 }
             }
             catch (Exception ex)
@@ -82,29 +85,51 @@ namespace TorpedoFrontEnd
                     if (bytesRead == 0) break; // Connection closed
 
                     string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
                     Dispatcher.Invoke(() =>
                     {
-                        
-
-                        // Check if the message contains the Player ID
-                        if (message.StartsWith("PlayerID:") && int.TryParse(message.Substring(9), out int id))
+                        if (message == "READY")
                         {
-                            playerID = id;
-                            //MessageBox.Show($"Server: {message}\n Player ID received: {playerID}\n");
-                            if (playerID == 1)
+                            // Notify GameViewModel that ships have been placed
+                            if (DataContext is GameViewModel gameViewModel)
                             {
-                                txbLocalPlayer.Text = "Player 1";
-                                txbRemotePlayer.Text = "Player 2";
+                                gameViewModel.SetPlacementPhase(false);
                             }
-                            else if (playerID == 2)
+                        }
+                        else if (message == "TURN")
+                        {
+                            // It's this player's turn
+                            if (DataContext is GameViewModel gameViewModel)
                             {
-                                txbLocalPlayer.Text = "Player 2";
-                                txbRemotePlayer.Text = "Player 1";
+                                gameViewModel.IsPlayerTurn = true;
                             }
-                            else if (playerID == -1)
+                        }
+                        else if (message.StartsWith("HIT_") || message.StartsWith("MISS_"))
+                        {
+                            // Result of our shot
+                            var parts = message.Split('_');
+                            int x = int.Parse(parts[1]);
+                            int y = int.Parse(parts[2]);
+                            bool isHit = message.StartsWith("HIT");
+
+                            if (DataContext is GameViewModel gameViewModel)
                             {
-                                MessageBox.Show("Server is full, please try again later.");
-                                this.Close();
+                                gameViewModel.ProcessShotResult(x, y, isHit);
+                            }
+                        }
+                        else if (message.StartsWith("SHOOT_"))
+                        {
+                            // Opponent is firing at us
+                            var parts = message.Split('_');
+                            int x = int.Parse(parts[1]);
+                            int y = int.Parse(parts[2]);
+
+                            if (DataContext is GameViewModel gameViewModel)
+                            {
+                                bool isHit = gameViewModel.IsShipAtCoordinates(x, y);
+                                string response = isHit ? $"HIT_{x}_{y}" : $"MISS_{x}_{y}";
+                                SendMessageToServer(response);
+                                gameViewModel.ProcessIncomingShot(x, y, isHit);
                             }
                         }
                     });
