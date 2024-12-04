@@ -123,24 +123,6 @@ namespace TorpedoFrontEnd
             }
         }
 
-        private async void SendButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (client == null || !client.Connected) return;
-
-            string message = MessageTextBox.Text;
-            if (string.IsNullOrWhiteSpace(message)) return;
-
-            try
-            {
-                NetworkStream stream = client.GetStream();
-                byte[] data = Encoding.UTF8.GetBytes(message);
-                await stream.WriteAsync(data, 0, data.Length);
-                MessageTextBox.Clear();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error sending message: {ex.Message}");
-            }
-        }
+       
     }
 }
