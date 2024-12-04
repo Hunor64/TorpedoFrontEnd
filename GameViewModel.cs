@@ -21,21 +21,18 @@ namespace TorpedoFrontEnd
         public ObservableCollection<Cell> Player1Cells { get; set; }
         public ObservableCollection<Cell> Player2Cells { get; set; }
 
-        bool placementPhase = true;
+        // Indicates if it's the ship placement phase
+        private bool placementPhase = true;
+
+        // Collection to store ships that have been placed
+        private ObservableCollection<Ship> PlacedShips { get; set; } = new ObservableCollection<Ship>();
 
         // Ships for each player
-        public ICommand RotateShipCommand { get; }
-
-        private void RotateShip(object parameter)
-        {
-            ShipOrientation = ShipOrientation == ShipOrientation.Horizontal
-                ? ShipOrientation.Vertical
-                : ShipOrientation.Horizontal;
-        }
         public ObservableCollection<Ship> Player1Ships { get; set; }
         public ObservableCollection<Ship> Player2Ships { get; set; }
 
         // Commands
+        public ICommand RotateShipCommand { get; }
         public ICommand PlaceShipCommand { get; }
         public ICommand FireCommand { get; }
 
@@ -66,6 +63,9 @@ namespace TorpedoFrontEnd
         private bool isPlayer1Turn = true;
         public bool IsPlacementPhase { get; private set; } = true;
         public string CurrentPlayer => isPlayer1Turn ? "Player 1's Turn" : "Player 2's Turn";
+        // Collections to store placed ships for each player
+        private ObservableCollection<Ship> Player1PlacedShips { get; set; } = new ObservableCollection<Ship>();
+        private ObservableCollection<Ship> Player2PlacedShips { get; set; } = new ObservableCollection<Ship>();
 
         private readonly MainWindow mainWindow;
 
@@ -180,9 +180,9 @@ namespace TorpedoFrontEnd
             return true;
         }
 
-        private void PlaceShip(Cell startCell)
+        private void PlaceShip(object parameter)
         {
-            if (startCell == null || SelectedShip == null)
+            if (parameter is not Cell startCell || SelectedShip == null)
                 return;
 
             var playerCells = isPlayer1Turn ? Player1Cells : Player2Cells;
@@ -190,11 +190,17 @@ namespace TorpedoFrontEnd
 
             int startIndex = playerCells.IndexOf(startCell);
             if (startIndex == -1)
-                return; // Cell not found in the list
+                return;
 
             int row = startIndex / 10;
             int column = startIndex % 10;
             var shipCells = new List<Cell>();
+
+            // Initialize SelectedShip.Cells if null
+            if (SelectedShip.Cells == null)
+            {
+                SelectedShip.Cells = new List<Cell>();
+            }
 
             for (int i = 0; i < SelectedShip.Size; i++)
             {
@@ -202,19 +208,22 @@ namespace TorpedoFrontEnd
                 if (ShipOrientation == ShipOrientation.Horizontal)
                 {
                     if (column + i >= 10)
-                        return; // Ship doesn't fit horizontally
+                        return;
+
                     index = startIndex + i;
                 }
-                else // Vertical
+                else
                 {
                     if (row + i >= 10)
-                        return; // Ship doesn't fit vertically
+                        return;
+
                     index = startIndex + i * 10;
                 }
 
                 var cell = playerCells[index];
                 if (cell.Ship != null)
-                    return; // Cell is already occupied
+                    return;
+
                 shipCells.Add(cell);
             }
 
@@ -228,12 +237,20 @@ namespace TorpedoFrontEnd
 
             SelectedShip.IsPlaced = true;
 
+            // Add the placed ship to the player's PlacedShips collection
+            if (isPlayer1Turn)
+            {
+                Player1PlacedShips.Add(SelectedShip);
+            }
+            else
+            {
+                Player2PlacedShips.Add(SelectedShip);
+            }
+
             // Remove the placed ship from the player's ships collection
             ships.Remove(SelectedShip);
 
-            // Add the placed ship to the PlacedShips collection
-
-            // Proceed to the next ship or switch player
+            // Proceed to the next ship or finish placement
             if (ships.Count == 0)
             {
                 if (placementPhase)
@@ -241,11 +258,11 @@ namespace TorpedoFrontEnd
                     SendShipsToServer();
                     placementPhase = false;
                 }
+
                 if (!isPlayer1Turn)
                 {
                     // Both players have placed their ships
                     IsPlacementPhase = false;
-
                     isPlayer1Turn = true;
                     SelectedShip = null;
                 }
@@ -263,20 +280,18 @@ namespace TorpedoFrontEnd
             }
 
             OnPropertyChanged(nameof(CurrentPlayer));
-            if (!IsPlacementPhase)
-            {
-                // Send a message to the server indicating ships have been placed
-                mainWindow.SendMessageToServer("SHIPS_PLACED");
-            }
         }
 
         private void SendShipsToServer()
         {
             var shipsData = new List<ShipData>();
-            var ships = Player1Ships;
+            var ships = isPlayer1Turn ? Player1PlacedShips : Player2PlacedShips;
 
             foreach (var ship in ships)
             {
+                if (ship.Cells == null)
+                    continue;
+
                 var shipData = new ShipData
                 {
                     Name = ship.Name,
@@ -287,7 +302,6 @@ namespace TorpedoFrontEnd
 
             string json = JsonSerializer.Serialize(shipsData);
             mainWindow.SendMessageToServer($"SHIPS_{mainWindow.playerID}_{json}");
-            MessageBox.Show($"SHIPS_{mainWindow.playerID}_{json}");
         }
 
         private bool CanFire(Cell cell)
@@ -346,11 +360,20 @@ namespace TorpedoFrontEnd
             return opponentCells.Where(c => c.Ship != null).All(c => c.IsHit);
         }
 
+        // Rotates the ship orientation
+        private void RotateShip(object parameter)
+        {
+            ShipOrientation = ShipOrientation == ShipOrientation.Horizontal
+                ? ShipOrientation.Vertical
+                : ShipOrientation.Horizontal;
+        }
+
         // INotifyPropertyChanged implementation
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+    // Data transfer objects for serialization
     public class ShipData
     {
         public string Name { get; set; }
