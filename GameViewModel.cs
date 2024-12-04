@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.Json;
+using System.Windows;
 using System.Windows.Input;
 
 namespace TorpedoFrontEnd
@@ -89,7 +91,6 @@ namespace TorpedoFrontEnd
             SelectedShip = Player1Ships.FirstOrDefault();
         }
 
-
         private void InitializeCells(ObservableCollection<Cell> cells)
         {
             for (int y = 0; y < 10; y++)
@@ -104,13 +105,13 @@ namespace TorpedoFrontEnd
         private void InitializePlayerShips()
         {
             var ships = new List<Ship>
-            {
-                new Ship { Name = "Aircraft Carrier", Size = 5 },
-                new Ship { Name = "Battleship", Size = 4 },
-                new Ship { Name = "Submarine", Size = 3 },
-                new Ship { Name = "Cruiser", Size = 3 },
-                new Ship { Name = "Destroyer", Size = 2 }
-            };
+                {
+                    new Ship { Name = "Aircraft Carrier", Size = 5 },
+                    new Ship { Name = "Battleship", Size = 4 },
+                    new Ship { Name = "Submarine", Size = 3 },
+                    new Ship { Name = "Cruiser", Size = 3 },
+                    new Ship { Name = "Destroyer", Size = 2 }
+                };
 
             Player1Ships = new ObservableCollection<Ship>(ships);
             Player2Ships = new ObservableCollection<Ship>(ships.Select(s => new Ship { Name = s.Name, Size = s.Size }));
@@ -179,7 +180,6 @@ namespace TorpedoFrontEnd
             return true;
         }
 
-
         private void PlaceShip(Cell startCell)
         {
             if (startCell == null || SelectedShip == null)
@@ -231,12 +231,14 @@ namespace TorpedoFrontEnd
             // Remove the placed ship from the player's ships collection
             ships.Remove(SelectedShip);
 
+            // Add the placed ship to the PlacedShips collection
+
             // Proceed to the next ship or switch player
             if (ships.Count == 0)
             {
                 if (placementPhase)
                 {
-                    mainWindow.SendMessageToServer($"SHIPSPLACED_{mainWindow.playerID}");
+                    SendShipsToServer();
                     placementPhase = false;
                 }
                 if (!isPlayer1Turn)
@@ -266,6 +268,26 @@ namespace TorpedoFrontEnd
                 // Send a message to the server indicating ships have been placed
                 mainWindow.SendMessageToServer("SHIPS_PLACED");
             }
+        }
+
+        private void SendShipsToServer()
+        {
+            var shipsData = new List<ShipData>();
+            var ships = Player1Ships;
+
+            foreach (var ship in ships)
+            {
+                var shipData = new ShipData
+                {
+                    Name = ship.Name,
+                    Cells = ship.Cells.Select(c => new CellData { X = c.X, Y = c.Y }).ToList()
+                };
+                shipsData.Add(shipData);
+            }
+
+            string json = JsonSerializer.Serialize(shipsData);
+            mainWindow.SendMessageToServer($"SHIPS_{mainWindow.playerID}_{json}");
+            MessageBox.Show($"SHIPS_{mainWindow.playerID}_{json}");
         }
 
         private bool CanFire(Cell cell)
@@ -328,6 +350,16 @@ namespace TorpedoFrontEnd
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+    public class ShipData
+    {
+        public string Name { get; set; }
+        public List<CellData> Cells { get; set; }
+    }
 
+    public class CellData
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
     }
 }
