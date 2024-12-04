@@ -21,7 +21,6 @@ namespace TorpedoFrontEnd
 
         public MainWindow()
         {
-            InitializeComponent();
             ConnectToServer();
             DataContext = new GameViewModel(this);
             SendMessageToServer("GetPlayerID");
@@ -53,18 +52,19 @@ namespace TorpedoFrontEnd
             }
         }
 
-        private async void ConnectToServer()
+        private  void ConnectToServer()
         {
             client = new TcpClient();
             try
             {
-                await client.ConnectAsync(ServerIp, ServerPort);
+                 client.Connect(ServerIp, ServerPort);
                 //ResponseTextBox.AppendText("Connected to server.\n");
                 ReceiveMessages();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error connecting to server: {ex.Message}");
+                MessageBox.Show("Server is not connected, please try again later.");
+                this.Close();
             }
         }
 
@@ -90,16 +90,22 @@ namespace TorpedoFrontEnd
                         if (message.StartsWith("PlayerID:") && int.TryParse(message.Substring(9), out int id))
                         {
                             playerID = id;
-                            //MessageBox.Show($"Server: {message}\n Player ID received: {playerID}\n");
                             if (playerID == 1)
                             {
+                                InitializeComponent();
                                 txbLocalPlayer.Text = "Player 1";
                                 txbRemotePlayer.Text = "Player 2";
                             }
                             else if (playerID == 2)
                             {
+                                InitializeComponent();
                                 txbLocalPlayer.Text = "Player 2";
                                 txbRemotePlayer.Text = "Player 1";
+                            }
+                            else if (playerID == 0)
+                            {
+                                MessageBox.Show("Server is not connected, please try again later.");
+                                this.Close();
                             }
                             else if (playerID == -1)
                             {
