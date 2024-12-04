@@ -367,6 +367,22 @@ namespace TorpedoFrontEnd
                 ? ShipOrientation.Vertical
                 : ShipOrientation.Horizontal;
         }
+        public void UpdateOpponentShips(string json)
+        {
+            var shipsData = JsonSerializer.Deserialize<List<ShipData>>(json);
+            foreach (var shipData in shipsData)
+            {
+                foreach (var cellData in shipData.Cells)
+                {
+                    var cell = Player1Cells.FirstOrDefault(c => c.X == cellData.X && c.Y == cellData.Y);
+                    if (cell != null)
+                    {
+                        cell.Ship = new Ship { Name = shipData.Name, Size = shipData.Cells.Count }; // Create a new ship instance
+                        cell.Display = "🚢"; // Display the ship on the grid
+                    }
+                }
+            }
+        }
 
         // INotifyPropertyChanged implementation
         public event PropertyChangedEventHandler PropertyChanged;
