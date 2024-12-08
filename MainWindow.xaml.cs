@@ -13,7 +13,7 @@ namespace TorpedoFrontEnd
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const string ServerIp = "127.0.0.1"; // Change this if your server is on a different machine
+        private const string ServerIp = "127.0.0.1";
         private const int ServerPort = 65432;
         private TcpClient client;
         private GameViewModel gameViewModel;
@@ -21,12 +21,11 @@ namespace TorpedoFrontEnd
 
         public MainWindow()
         {
-            ConnectToServer();
-            DataContext = new GameViewModel(this);
-            SendMessageToServer("GetPlayerID");
             InitializeComponent();
-            gameViewModel = new GameViewModel(this); // Pass the current instance of MainWindow
+            ConnectToServer();
+            gameViewModel = new GameViewModel(this);
             DataContext = gameViewModel;
+            SendMessageToServer("GetPlayerID");
         }
 
         public async void SendMessageToServer(string message)
@@ -38,16 +37,6 @@ namespace TorpedoFrontEnd
                 NetworkStream stream = client.GetStream();
                 byte[] data = Encoding.UTF8.GetBytes(message);
                 await stream.WriteAsync(data, 0, data.Length);
-
-                byte[] buffer = new byte[1024];
-                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                if (message == "GetPlayerID" && int.TryParse(response, out int id))
-                {
-                    playerID = id;
-                    //Dispatcher.Invoke(() => ResponseTextBox.AppendText($"Player ID received: {playerID}\n"));
-                }
             }
             catch (Exception ex)
             {
@@ -55,13 +44,12 @@ namespace TorpedoFrontEnd
             }
         }
 
-        private  void ConnectToServer()
+        private void ConnectToServer()
         {
             client = new TcpClient();
             try
             {
-                 client.Connect(ServerIp, ServerPort);
-                //ResponseTextBox.AppendText("Connected to server.\n");
+                client.Connect(ServerIp, ServerPort);
                 ReceiveMessages();
             }
             catch (Exception ex)
@@ -74,7 +62,7 @@ namespace TorpedoFrontEnd
         private async void ReceiveMessages()
         {
             NetworkStream stream = client.GetStream();
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[4096];
             int bytesRead;
 
             while (true)
@@ -82,24 +70,21 @@ namespace TorpedoFrontEnd
                 try
                 {
                     bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                    if (bytesRead == 0) break; // Connection closed
+                    if (bytesRead == 0) break;
 
                     string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                     Dispatcher.Invoke(() =>
                     {
-                        // Check if the message contains the Player ID
                         if (message.StartsWith("PlayerID:") && int.TryParse(message.Substring(9), out int id))
                         {
                             playerID = id;
                             if (playerID == 1)
                             {
-                                InitializeComponent();
                                 txbLocalPlayer.Text = "Player 1";
                                 txbRemotePlayer.Text = "Player 2";
                             }
                             else if (playerID == 2)
                             {
-                                InitializeComponent();
                                 txbLocalPlayer.Text = "Player 2";
                                 txbRemotePlayer.Text = "Player 1";
                             }
@@ -114,13 +99,32 @@ namespace TorpedoFrontEnd
                                 this.Close();
                             }
                         }
-                        else if (message.StartsWith("SHIPPOSITIONS:"))
+                        else if (message.StartsWith("FIRE_RESULT_HIT_") || message.StartsWith("FIRE_RESULT_MISS_"))
                         {
-                            // Extract the JSON part of the message
-                            var json = message.Substring("SHIPPOSITIONS:".Length);
-                            gameViewModel.UpdateOpponentShips(json);
+                            gameViewModel.HandleFireResult(message);
                         }
-                        // You can add more message handling logic here if needed
+                        else if (message.StartsWith("OPPONENT_HIT_") || message.StartsWith("OPPONENT_MISS_"))
+                        {
+                            gameViewModel.HandleOpponentAction(message);
+                        }
+                        else if (message.StartsWith("NEXT_TURN_"))
+                        {
+                            int turnPlayerId = int.Parse(message.Substring("NEXT_TURN_".Length));
+                            gameViewModel.UpdateTurn(turnPlayerId == playerID);
+                        }
+                        else if (message.StartsWith("SHIP_SUNK_"))
+                        {
+                            gameViewModel.HandleShipSunk(message);
+                        }
+                        else if (message.StartsWith("YOUR_SHIP_SUNK_"))
+                        {
+                            gameViewModel.HandleYourShipSunk(message);
+                        }
+                        else if (message.StartsWith("GAME_OVER_"))
+                        {
+                            MessageBox.Show(message.Replace('_', ' '));
+                            this.Close();
+                        }
                     });
                 }
                 catch (Exception ex)
@@ -130,7 +134,5 @@ namespace TorpedoFrontEnd
                 }
             }
         }
-
-
     }
 }
