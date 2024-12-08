@@ -261,8 +261,6 @@ namespace TorpedoFrontEnd
         public void HandleFireResult(string message)
         {
             var parts = message.Split('_');
-            if (parts.Length != 4)
-                return;
 
             string result = parts[2];
             int x = int.Parse(parts[3]);
