@@ -23,8 +23,6 @@ namespace TorpedoFrontEnd
         {
             InitializeComponent();
             ConnectToServer();
-            gameViewModel = new GameViewModel(this);
-            DataContext = gameViewModel;
             SendMessageToServer("GetPlayerID");
         }
 
@@ -52,7 +50,7 @@ namespace TorpedoFrontEnd
                 client.Connect(ServerIp, ServerPort);
                 ReceiveMessages();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 MessageBox.Show("Server is not connected, please try again later.");
                 this.Close();
@@ -78,6 +76,11 @@ namespace TorpedoFrontEnd
                         if (message.StartsWith("PlayerID:") && int.TryParse(message.Substring(9), out int id))
                         {
                             playerID = id;
+
+                            // Instantiate GameViewModel now that playerID is set
+                            gameViewModel = new GameViewModel(this);
+                            DataContext = gameViewModel;
+
                             if (playerID == 1)
                             {
                                 txbLocalPlayer.Text = "Player 1";
